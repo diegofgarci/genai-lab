@@ -16,7 +16,7 @@ Tools:
 
 import json
 import time
-from anthropic import Anthropic, OverloadedError, RateLimitError, APITimeoutError
+from anthropic import Anthropic, APIStatusError, RateLimitError, APITimeoutError
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -162,8 +162,14 @@ def api_call_with_retry(**kwargs) -> object:
     for attempt in range(1, MAX_RETRIES + 1):
         try:
             return client.messages.create(**kwargs)
-        except (OverloadedError, RateLimitError) as e:
-            error_type = "OVERLOADED" if isinstance(e, OverloadedError) else "RATE LIMIT"
+        except (APIStatusError, RateLimitError) as e:
+            # Only retry on 529 (overloaded) and 429 (rate limit)
+            if isinstance(e, APIStatusError) and not isinstance(e, RateLimitError):
+                if e.status_code != 529:
+                    raise  # Don't retry 400, 404, 500, etc.
+                error_type = "OVERLOADED (529)"
+            else:
+                error_type = "RATE LIMIT"
             delay = RETRY_DELAY * (2 ** (attempt - 1))  # 5s, 10s, 20s
             if attempt < MAX_RETRIES:
                 print(f"  [{error_type}] Retrying in {delay}s... ({attempt}/{MAX_RETRIES})")

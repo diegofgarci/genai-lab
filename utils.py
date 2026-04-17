@@ -13,7 +13,7 @@ import os
 import time
 import json
 from dotenv import load_dotenv
-from anthropic import Anthropic, APITimeoutError, RateLimitError, AuthenticationError
+from anthropic import Anthropic, APITimeoutError, RateLimitError, AuthenticationError, APIStatusError
 from groq import Groq
 import groq as groq_module  # For exception types
 
@@ -54,8 +54,8 @@ MODELS = {
 }
 
 # ── Retry Configuration ──────────────────────────────────────────────────────
-MAX_RETRIES = 2
-RETRY_DELAY = 5  # seconds
+MAX_RETRIES = 3
+RETRY_DELAY = 5  # seconds — base delay, doubles on each retry (exponential backoff)
 
 
 # ── Core API Call ────────────────────────────────────────────────────────────
@@ -134,13 +134,20 @@ def call_model(
             print(f"  [AUTH ERROR] {model_key}: invalid API key. Check .env")
             return None
 
-        # Rate limits: retry with backoff
-        except (RateLimitError, groq_module.RateLimitError):
+        # Rate limits + overloaded: retry with exponential backoff
+        # APIStatusError with 529 = server at capacity, same strategy as rate limits
+        except (RateLimitError, APIStatusError, groq_module.RateLimitError) as e:
+            is_overloaded = isinstance(e, APIStatusError) and e.status_code == 529
+            is_retryable = is_overloaded or isinstance(e, (RateLimitError, groq_module.RateLimitError))
+            if not is_retryable:
+                raise  # Non-retryable API error — bail out
+            delay = RETRY_DELAY * (2 ** (attempt - 1))  # 5s, 10s, 20s
+            error_type = "OVERLOADED (529)" if is_overloaded else "RATE LIMIT"
             if attempt < MAX_RETRIES:
-                print(f"  [RATE LIMIT] {model_key}: retrying in {RETRY_DELAY}s... ({attempt}/{MAX_RETRIES})")
-                time.sleep(RETRY_DELAY)
+                print(f"  [{error_type}] {model_key}: retrying in {delay}s... ({attempt}/{MAX_RETRIES})")
+                time.sleep(delay)
             else:
-                print(f"  [RATE LIMIT] {model_key}: exceeded after {MAX_RETRIES} attempts.")
+                print(f"  [{error_type}] {model_key}: exceeded after {MAX_RETRIES} attempts.")
                 return None
 
         # Timeouts: retry
