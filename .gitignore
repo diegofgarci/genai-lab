@@ -4,3 +4,6 @@ __pycache__/
 *.pyc
 .DS_Store
 chroma_db/
+
+# Data files for RAG experiments
+data/
