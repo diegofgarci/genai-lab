@@ -1,15 +1,14 @@
 # Semana [N] — Día [N] · [Tema del día]
 
-**Fecha:**
-**Horas aprox:**
-**Estado de ánimo:**
+**Fecha:** 27 de abril
+**Horas aprox:** 22:00
+**Estado de ánimo:** normal
 
 ---
 
 ## Conceptos nuevos hoy
 
-<!-- ¿Qué palabras, ideas o técnicas aprendí hoy que no conocía?
-     Una lista corta. Una línea por concepto, con una frase que lo defina. -->
+concepto de chuncking y estrategias (hibridas y demas)
 
 -
 
@@ -17,9 +16,7 @@
 
 ## Momento "ajá" del día
 
-<!-- ¿Cuál es la frase, el código, el hallazgo o el error que me cambió
-     el entendimiento? El momento en el que algo hizo "clic".
-     Si no hubo uno claro, escribe "ninguno" y ya está. No inventes. -->
+la importancia que tiene la fase anterior, el chuncking se beneficia de ella
 
 
 
@@ -27,30 +24,21 @@
 
 ## Lo que más me costó
 
-<!-- ¿Dónde me quedé atascado? ¿Qué tuve que releer dos veces?
-     ¿Qué concepto no me entraba?
-     Ser honesto aquí es lo que hace el diario útil en el futuro. -->
-
+codigo denso, muchos conceptos nuevos
 
 
 ---
 
 ## Decisiones técnicas tomadas
 
-<!-- ¿Qué elegí hacer y por qué? ¿Qué descarté?
-     Stack, librerías, patrones, estructuras de datos... cualquier
-     decisión que si me preguntaran dentro de 6 meses tendría que
-     reconstruir. -->
-
+me dejo llevar un poco por el profesor, la verdad. 
 -
 
 ---
 
 ## Conexiones con cosas que ya sabía
 
-<!-- ¿Con qué experiencia previa se conecta lo de hoy?
-     Automatización de procesos, Python previo, otros conceptos del sprint,
-     algo que leí en un newsletter, una charla... -->
+Me cuesta aún entender todo el pipeline
 
 -
 
@@ -58,10 +46,7 @@
 
 ## Preguntas abiertas / para explorar
 
-<!-- ¿Qué me quedó sin responder? ¿Qué curiosidad se despertó?
-     Estas preguntas son semillas para experimentos futuros
-     y para posts/artículos al final del sprint. -->
-
+Que importancia tiene esto en realidad. Que librerias lo facilitian
 -
 
 ---
