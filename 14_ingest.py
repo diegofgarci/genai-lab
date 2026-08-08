@@ -34,11 +34,11 @@ from pathlib import Path
 import chromadb
 from sentence_transformers import SentenceTransformer
 
+from embeddings import CHROMA_DIR, EMBEDDING_MODEL, get_client, get_model
+
 # ── Config ───────────────────────────────────────────────────────────────────
 
 PROCESSED_DIR = Path("corpus/processed")
-CHROMA_DIR = "chroma_db"
-EMBEDDING_MODEL = "sentence-transformers/all-MiniLM-L6-v2"
 BATCH_SIZE = 32
 
 # Map: strategy folder name → collection name
@@ -238,11 +238,11 @@ def main():
     # Load embedding model once. Reused across all strategies.
     print(f"\nLoading embedding model...")
     t0 = time.time()
-    model = SentenceTransformer(EMBEDDING_MODEL)
+    model = get_model()
     print(f"Model loaded in {time.time()-t0:.2f}s")
 
     # PersistentClient: data survives across script runs (vs in-memory client)
-    client = chromadb.PersistentClient(path=CHROMA_DIR)
+    client = get_client()
 
     targets = [args.strategy] if args.strategy else list(STRATEGIES.keys())
 
