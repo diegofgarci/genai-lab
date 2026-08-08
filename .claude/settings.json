@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "defaultMode": "default",
+    "deny": [
+      "Read(/.env)",
+      "Edit(/.env)",
+      "Edit(/.git/**)"
+    ],
+    "ask": [
+      "Bash(git push *)",
+      "Bash(git reset --hard *)",
+      "Bash(git clean *)"
+    ]
+  }
+}

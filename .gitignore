@@ -7,3 +7,4 @@ chroma_db/
 
 # Data files for RAG experiments
 data/
+.claude/settings.local.json
