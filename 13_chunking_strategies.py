@@ -37,7 +37,7 @@ import json
 import hashlib
 from pathlib import Path
 from datetime import datetime, timezone
-from collections import Counter
+from collections import Counter, defaultdict
 from statistics import mean, median
 
 import tiktoken
@@ -126,9 +126,31 @@ def make_chunk_id(text: str) -> str:
 # This is the wrong approach for documents with rich structure — but it's the
 # right baseline to measure improvement against.
 
+# Unit-level metadata keys. The flat baseline deliberately DROPS these:
+# a chunk that spans pages 12-14 cannot honestly claim "page=12", and a chunk
+# that crosses two markdown sections has no single section_path. Losing
+# traceability IS the cost of ignoring structure — recording it accurately is
+# what makes the comparison against HYBRID fair.
+UNIT_LEVEL_KEYS = {
+    "page", "section_path", "section", "header_level", "section_index",
+    "char_count",
+}
+
+
 def chunk_recursive(units: list[dict]) -> list[dict]:
     """
-    Apply recursive character splitting to every unit, uniformly.
+    Structure-blind baseline: concatenate each document's units into one flat
+    text, then split it uniformly at CHUNK_SIZE_TOKENS.
+
+    Boundaries the loader found (PDF pages, Markdown sections) are discarded —
+    a chunk may start mid-page and end mid-section. That is the point: this is
+    what a pipeline that knows nothing about document structure produces.
+
+    Grouping is per-document, not per-corpus: concatenating a PDF onto a
+    Markdown file would splice unrelated documents into the same chunk, which
+    no real pipeline does. Ignoring structure within a document is the
+    baseline; ignoring document identity is just a bug.
+
     Returns a flat list of chunk dicts.
     """
     splitter = RecursiveCharacterTextSplitter(
@@ -142,23 +164,42 @@ def chunk_recursive(units: list[dict]) -> list[dict]:
         separators=["\n\n", "\n", ". ", " ", ""],
     )
 
+    # Group units by their source document, preserving reading order.
+    # dict preserves insertion order (Python 3.7+), so documents come out in
+    # the order the loader emitted them — reproducible across runs.
+    docs: dict[str, list[dict]] = defaultdict(list)
+    for unit in units:
+        docs[unit["metadata"]["source"]].append(unit)
+
     chunks = []
-    for unit_idx, unit in enumerate(units):
-        # split_text returns a list of strings — we wrap them with metadata
-        text_chunks = splitter.split_text(unit["text"])
+    for doc_idx, (source, doc_units) in enumerate(docs.items()):
+        # "\n\n" is the splitter's highest-preference separator. Joining with it
+        # means that where the original unit boundaries happened to be good
+        # split points, the splitter can still land on them — it just isn't
+        # obliged to. Joining with " " would actively destroy that option and
+        # make the baseline worse than structure-blind: structure-hostile.
+        flat_text = "\n\n".join(u["text"] for u in doc_units)
+        text_chunks = splitter.split_text(flat_text)
+
+        # Document-level metadata is still true for every chunk of this doc
+        # (source, source_type, doc_title...). Unit-level keys are not.
+        doc_meta = {
+            k: v for k, v in doc_units[0]["metadata"].items()
+            if k not in UNIT_LEVEL_KEYS
+        }
 
         for chunk_idx, chunk_text in enumerate(text_chunks):
             chunks.append({
                 "chunk_id": make_chunk_id(chunk_text),
                 "text": chunk_text,
                 "metadata": {
-                    # Inherit the unit's metadata so we keep page/section context
-                    **unit["metadata"],
+                    **doc_meta,
                     # Chunker-specific metadata
                     "chunk_strategy": "recursive",
-                    "chunk_index_in_unit": chunk_idx,
-                    "n_chunks_in_unit": len(text_chunks),
-                    "unit_index": unit_idx,
+                    "chunk_index_in_doc": chunk_idx,
+                    "n_chunks_in_doc": len(text_chunks),
+                    "doc_index": doc_idx,
+                    "n_units_in_doc": len(doc_units),
                     "n_tokens": count_tokens(chunk_text),
                     "n_chars": len(chunk_text),
                 },
